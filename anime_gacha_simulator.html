@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Starlight Symphony - Anime Gacha Simulator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        cinzel: ['Cinzel', 'serif'],
+                        outfit: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        rarity5: '#fbbf24',
+                        rarity4: '#c084fc',
+                        rarity3: '#60a5fa',
+                        darkBg: '#070913',
+                    },
+                    animation: {
+                        'pulse-glow': 'pulseGlow 2s infinite alternate',
+                        'spin-slow': 'spin 14s linear infinite',
+                        'aura-float': 'auraFloat 4s ease-in-out infinite',
+                        'shimmer-fast': 'shimmerFast 1.5s infinite linear',
+                        'beam-rotate': 'beamRotate 8s linear infinite',
+                        'screen-flash': 'screenFlash 0.6s ease-out forwards',
+                    },
+                    keyframes: {
+                        pulseGlow: {
+                            '0%': { boxShadow: '0 0 15px rgba(251, 191, 36, 0.4)' },
+                            '100%': { boxShadow: '0 0 40px rgba(251, 191, 36, 0.95)' },
+                        },
+                        auraFloat: {
+                            '0%, 100%': { transform: 'translateY(0px) scale(1)' },
+                            '50%': { transform: 'translateY(-12px) scale(1.02)' },
+                        },
+                        shimmerFast: {
+                            '0%': { transform: 'translateX(-100%)' },
+                            '100%': { transform: 'translateX(100%)' }
+                        },
+                        beamRotate: {
+                            '0%': { transform: 'rotate(0deg)' },
+                            '100%': { transform: 'rotate(360deg)' }
+                        },
+                        screenFlash: {
+                            '0%': { opacity: '0' },
+                            '30%': { opacity: '1' },
+                            '100%': { opacity: '0' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #070913;
+            color: #f3f4f6;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        .glass-panel {
+            background: rgba(13, 17, 32, 0.82);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .glass-button {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-button:hover {
+            background: rgba(255, 255, 255, 0.22);
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* Card Shimmer Effects */
+        .card-5star {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.25), rgba(180, 83, 9, 0.5), rgba(15, 23, 42, 0.9));
+            border: 2px solid #fbbf24;
+            box-shadow: 0 0 25px rgba(251, 191, 36, 0.6);
+        }
+        .card-4star {
+            background: linear-gradient(135deg, rgba(192, 132, 252, 0.25), rgba(126, 34, 206, 0.5), rgba(15, 23, 42, 0.9));
+            border: 2px solid #c084fc;
+            box-shadow: 0 0 18px rgba(192, 132, 252, 0.5);
+        }
+        .card-3star {
+            background: linear-gradient(135deg, rgba(96, 165, 250, 0.2), rgba(29, 78, 216, 0.4), rgba(15, 23, 42, 0.9));
+            border: 1.5px solid #60a5fa;
+            box-shadow: 0 0 12px rgba(96, 165, 250, 0.35);
+        }
+
+        /* Flip Animation */
+        .card-container {
+            perspective: 1000px;
+        }
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+        }
+        .card-container.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 0.85rem;
+        }
+        .card-front {
+            transform: rotateY(180deg);
+        }
+        .card-back {
+            background: linear-gradient(135deg, #1e1b4b, #0f172a);
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Screen Shake for 5★ Reveal */
+        .shake-screen {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
+            40%, 60% { transform: translate3d(8px, 0, 0); }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(192, 132, 252, 0.5);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(192, 132, 252, 0.8);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-darkBg text-slate-100 flex flex-col justify-between relative overflow-x-hidden select-none">
+
+    <!-- Background Animated Stars/Particles Canvas -->
+    <canvas id="bgCanvas" class="fixed inset-0 pointer-events-none z-0"></canvas>
+
+    <!-- Top Navigation Header -->
+    <header class="relative z-10 w-full px-4 py-3 glass-panel border-b border-slate-800/80 flex flex-wrap justify-between items-center gap-3">
+        <!-- Logo -->
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-400 via-purple-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-900/50 border border-amber-300/40">
+                <i class="fa-solid fa-sparkles text-amber-300 text-lg"></i>
+            </div>
+            <div>
+                <h1 class="font-cinzel text-lg md:text-xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-purple-200 to-indigo-200">
+                    STARLIGHT SYMPHONY
+                </h1>
+                <p class="text-xs text-slate-400 font-medium">Anime Character Gacha Simulator</p>
+            </div>
+        </div>
+
+        <!-- Currencies & Actions Header Controls -->
+        <div class="flex items-center space-x-3 flex-wrap">
+            <!-- Audio Toggle -->
+            <button id="soundToggleBtn" onclick="toggleAudio()" class="glass-button px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-2 text-slate-300 hover:text-white">
+                <i id="soundIcon" class="fa-solid fa-volume-high text-amber-400"></i>
+                <span id="soundText">SFX ON</span>
+            </button>
+
+            <!-- Currency Indicator -->
+            <div class="flex items-center space-x-2 bg-slate-900/90 border border-slate-700/80 px-3 py-1.5 rounded-full shadow-inner">
+                <i class="fa-solid fa-gem text-cyan-400 text-sm"></i>
+                <span id="currencyDisplay" class="font-bold text-sm tracking-wide text-cyan-200">16,000</span>
+            </div>
+
+            <!-- Get Gems Button -->
+            <button onclick="rechargeCurrency()" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs px-3.5 py-1.5 rounded-full shadow-lg shadow-emerald-900/30 transition-all transform active:scale-95 flex items-center space-x-1">
+                <i class="fa-solid fa-plus text-xs"></i>
+                <span>Get Gems</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="relative z-10 flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 flex flex-col justify-center">
+        
+        <!-- Banner Display Card -->
+        <div class="relative w-full rounded-2xl overflow-hidden glass-panel border border-amber-500/30 shadow-2xl min-h-[500px] md:min-h-[540px] flex flex-col justify-between p-6 md:p-8">
+            
+            <!-- Banner Background & Showcase Art Display -->
+            <div id="bannerArt" class="absolute inset-0 pointer-events-none transition-all duration-700 bg-gradient-to-br from-purple-950/70 via-slate-950/80 to-amber-950/60 flex items-center justify-end overflow-hidden">
+                <div class="relative w-full md:w-2/3 h-full flex items-center justify-center translate-x-4 md:translate-x-12 opacity-80 md:opacity-95">
+                    <!-- Glowing Aura Rings -->
+                    <div class="absolute w-80 h-80 md:w-[480px] md:h-[480px] rounded-full bg-gradient-to-r from-amber-500/20 via-purple-500/20 to-indigo-500/20 blur-3xl animate-pulse"></div>
+                    <div class="absolute w-64 h-64 md:w-80 md:h-80 rounded-full border border-amber-400/20 animate-spin-slow"></div>
+                    <!-- Large Vector Anime Showcase Portrait -->
+                    <div id="featuredHeroArt" class="relative z-10 w-72 h-72 md:w-96 md:h-96 filter drop-shadow-[0_0_35px_rgba(251,191,36,0.6)] animate-aura-float">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Banner Header Info -->
+            <div class="relative z-10 max-w-xl">
+                <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-bold uppercase tracking-wider mb-3 backdrop-blur-sm">
+                    <i class="fa-solid fa-crown text-amber-400"></i>
+                    <span>Featured Event Wish</span>
+                </div>
+                <h2 id="bannerTitle" class="font-cinzel text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-100 via-amber-300 to-amber-500 tracking-wide drop-shadow-md">
+                    ARIA: CELESTIAL VALKYRIE
+                </h2>
+                <p id="bannerSubtitle" class="text-slate-300 text-sm md:text-base mt-2 leading-relaxed font-medium">
+                    "Starlight Ascension" &bull; 50% chance to summon the legendary Astral Empress!
+                </p>
+
+                <!-- Featured Characters Badges -->
+                <div class="flex flex-wrap gap-2 mt-4">
+                    <span class="px-3 py-1 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-semibold flex items-center space-x-1.5 backdrop-blur-sm">
+                        <i class="fa-solid fa-star text-amber-400"></i>
+                        <span>5★ Aria (Light / Mage)</span>
+                    </span>
+                    <span class="px-3 py-1 rounded-lg bg-purple-500/20 border border-purple-500/40 text-purple-300 text-xs font-semibold flex items-center space-x-1.5 backdrop-blur-sm">
+                        <i class="fa-solid fa-star text-purple-400"></i>
+                        <span>4★ Lyra (Wind)</span>
+                    </span>
+                    <span class="px-3 py-1 rounded-lg bg-purple-500/20 border border-purple-500/40 text-purple-300 text-xs font-semibold flex items-center space-x-1.5 backdrop-blur-sm">
+                        <i class="fa-solid fa-star text-purple-400"></i>
+                        <span>4★ Nova (Fire)</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Pity Tracking & Guarantee Status Widget -->
+            <div class="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-3 my-4 max-w-3xl">
+                <!-- 5-Star Pity Progress -->
+                <div class="bg-slate-900/80 border border-slate-700/80 p-3.5 rounded-xl flex flex-col justify-between backdrop-blur-md">
+                    <div class="flex justify-between items-center mb-1.5">
+                        <span class="text-xs text-slate-300 font-bold flex items-center space-x-1">
+                            <i class="fa-solid fa-star text-amber-400"></i>
+                            <span>5★ Pity Counter</span>
+                        </span>
+                        <span id="pity5Count" class="text-xs font-extrabold text-amber-400">0 / 90</span>
+                    </div>
+                    <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden border border-slate-700">
+                        <div id="pity5Bar" class="bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-300 h-full w-0 transition-all duration-300"></div>
+                    </div>
+                    <span id="pity5Status" class="text-[10px] text-slate-400 mt-1">Soft pity begins at 74 pulls (+6%/pull)</span>
+                </div>
+
+                <!-- 4-Star Pity Progress -->
+                <div class="bg-slate-900/80 border border-slate-700/80 p-3.5 rounded-xl flex flex-col justify-between backdrop-blur-md">
+                    <div class="flex justify-between items-center mb-1.5">
+                        <span class="text-xs text-slate-300 font-bold flex items-center space-x-1">
+                            <i class="fa-solid fa-star text-purple-400"></i>
+                            <span>4★ Guarantee</span>
+                        </span>
+                        <span id="pity4Count" class="text-xs font-extrabold text-purple-400">0 / 10</span>
+                    </div>
+                    <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden border border-slate-700">
+                        <div id="pity4Bar" class="bg-gradient-to-r from-purple-500 to-indigo-400 h-full w-0 transition-all duration-300"></div>
+                    </div>
+                    <span class="text-[10px] text-slate-400 mt-1">Guaranteed 4★+ every 10 pulls</span>
+                </div>
+
+                <!-- 50/50 Guarantee Status -->
+                <div class="bg-slate-900/80 border border-slate-700/80 p-3.5 rounded-xl flex items-center justify-between backdrop-blur-md">
+                    <div>
+                        <div class="text-xs text-slate-300 font-bold">Featured Rate-Up</div>
+                        <div id="rateUpStatus" class="text-sm font-black text-amber-300 mt-0.5">50% Chance</div>
+                    </div>
+                    <div class="w-9 h-9 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-sm shadow-md">
+                        <i class="fa-solid fa-dice-d20"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summon Action Buttons Container -->
+            <div class="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-800/80">
+                
+                <!-- Quick Navigation Tools -->
+                <div class="flex items-center space-x-2">
+                    <button onclick="openModal('collectionModal')" class="glass-button px-4 py-2.5 rounded-xl text-xs font-bold text-slate-200 flex items-center space-x-2">
+                        <i class="fa-solid fa-users-viewfinder text-purple-400"></i>
+                        <span>Roster Gallery</span>
+                    </button>
+                    <button onclick="openModal('historyModal')" class="glass-button px-4 py-2.5 rounded-xl text-xs font-bold text-slate-200 flex items-center space-x-2">
+                        <i class="fa-solid fa-clock-rotate-left text-cyan-400"></i>
+                        <span>Wish Logs</span>
+                    </button>
+                    <button onclick="openModal('statsModal')" class="glass-button px-4 py-2.5 rounded-xl text-xs font-bold text-slate-200 flex items-center space-x-2">
+                        <i class="fa-solid fa-chart-pie text-emerald-400"></i>
+                        <span>Probability</span>
+                    </button>
+                </div>
+
+                <!-- Pull Buttons -->
+                <div class="flex items-center space-x-3 w-full sm:w-auto">
+                    <!-- Pull 1x Button -->
+                    <button onclick="performSummon(1)" class="flex-1 sm:flex-none relative group overflow-hidden bg-gradient-to-r from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 border border-slate-500/50 rounded-xl px-6 py-3 font-bold text-sm shadow-lg transition-all active:scale-95">
+                        <div class="flex flex-col items-center">
+                            <span class="text-white group-hover:text-amber-300 transition-colors">Wish 1x</span>
+                            <span class="text-xs text-cyan-300 font-semibold flex items-center space-x-1 mt-0.5">
+                                <i class="fa-solid fa-gem text-[10px]"></i>
+                                <span>160</span>
+                            </span>
+                        </div>
+                    </button>
+
+                    <!-- Pull 10x Button -->
+                    <button onclick="performSummon(10)" class="flex-1 sm:flex-none relative group overflow-hidden bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black rounded-xl px-8 py-3 text-sm shadow-xl shadow-amber-900/40 transition-all transform hover:-translate-y-0.5 active:scale-95 border border-amber-300">
+                        <div class="flex flex-col items-center">
+                            <span class="font-cinzel tracking-wider text-slate-950">WISH 10x</span>
+                            <span class="text-xs text-slate-900 font-extrabold flex items-center space-x-1 mt-0.5">
+                                <i class="fa-solid fa-gem text-[10px]"></i>
+                                <span>1,600</span>
+                            </span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Gacha Portal & Wish Visual Sequence Overlay -->
+    <div id="summonOverlay" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-2xl hidden flex-col items-center justify-center p-4">
+        
+        <!-- Skip Button -->
+        <button id="skipAnimBtn" onclick="skipToResults()" class="absolute top-6 right-6 z-50 glass-button px-5 py-2 rounded-full text-xs font-extrabold text-amber-300 tracking-wider hover:bg-amber-500/20 border border-amber-400/40 hidden">
+            SKIP ANIMATION <i class="fa-solid fa-forward-step ml-1"></i>
+        </button>
+
+        <!-- Stage 1: Portal Summon Animation -->
+        <div id="summonPortalStage" class="flex flex-col items-center justify-center text-center">
+            <!-- Magic Summon Circle & Meteor -->
+            <div class="relative w-64 h-64 md:w-80 md:h-80 flex items-center justify-center">
+                <!-- Outer Rotating Circle -->
+                <div id="portalCircle" class="absolute inset-0 rounded-full border-2 border-dashed border-amber-400/60 animate-spin-slow"></div>
+                <!-- Aura Glow -->
+                <div id="portalAura" class="absolute inset-4 rounded-full bg-amber-400/30 blur-3xl animate-ping"></div>
+                <!-- Meteor Core Orb -->
+                <div id="portalOrb" class="relative w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-tr from-amber-400 via-amber-200 to-white shadow-[0_0_60px_rgba(251,191,36,1)] flex items-center justify-center animate-bounce border-2 border-white">
+                    <i class="fa-solid fa-wand-magic-sparkles text-amber-950 text-5xl"></i>
+                </div>
+            </div>
+            <h3 id="summonStageText" class="font-cinzel text-2xl md:text-3xl font-black tracking-widest text-amber-300 mt-6 animate-pulse">
+                COMMUNING WITH THE STARS...
+            </h3>
+            <p class="text-slate-400 text-xs md:text-sm mt-2">Opening celestial dimensional rift</p>
+        </div>
+
+        <!-- Stage 2: 5-STAR CINEMATIC SPLASH SHOWCASE -->
+        <div id="cinematicReveal5Star" class="hidden fixed inset-0 z-50 bg-slate-950 flex-col items-center justify-center overflow-hidden">
+            <!-- Shimmer Particle Canvas -->
+            <canvas id="cinematicCanvas" class="absolute inset-0 pointer-events-none z-0"></canvas>
+            
+            <!-- Rotating Light Rays Background -->
+            <div class="absolute inset-0 flex items-center justify-center opacity-40 pointer-events-none">
+                <div class="w-[800px] h-[800px] md:w-[1200px] md:h-[1200px] bg-gradient-to-tr from-amber-500/20 via-yellow-300/10 to-transparent rounded-full animate-beam-rotate"></div>
+            </div>
+
+            <!-- Content Card -->
+            <div class="relative z-10 flex flex-col items-center text-center max-w-2xl px-6">
+                <!-- Dynamic Character Illustration -->
+                <div id="cinematicCharArt" class="w-64 h-64 md:w-88 md:h-88 filter drop-shadow-[0_0_50px_rgba(251,191,36,0.9)] animate-aura-float mb-4"></div>
+                
+                <!-- Rarity Banner -->
+                <div class="flex space-x-1.5 text-amber-300 text-2xl md:text-3xl mb-2 animate-bounce">
+                    <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                </div>
+
+                <div class="px-3 py-1 rounded-full bg-amber-500/30 border border-amber-400/50 text-amber-300 text-xs font-black uppercase tracking-widest mb-2">
+                    ULTRA RARE LEGENDARY
+                </div>
+
+                <h2 id="cinematicCharName" class="font-cinzel text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-100 via-amber-300 to-amber-500 tracking-wider"></h2>
+                <p id="cinematicCharQuote" class="text-amber-200/90 italic text-sm md:text-base mt-2 max-w-lg font-medium"></p>
+
+                <button onclick="closeCinematic5Star()" class="mt-8 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 text-slate-950 font-extrabold px-8 py-3 rounded-full shadow-2xl shadow-amber-500/50 hover:scale-105 transition-transform text-sm tracking-wider">
+                    CLAIM LEGENDARY HERO <i class="fa-solid fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Stage 3: Results Grid Screen -->
+        <div id="revealGridScreen" class="hidden w-full max-w-6xl flex-col items-center justify-center space-y-6 max-h-[90vh] overflow-y-auto p-2">
+            
+            <div class="flex justify-between items-center w-full px-4 border-b border-slate-800/80 pb-3">
+                <div>
+                    <h3 class="font-cinzel text-2xl font-black text-amber-300 tracking-wider">SUMMON RESULTS</h3>
+                    <p class="text-xs text-slate-400">Click individual cards to inspect hero details</p>
+                </div>
+                <button onclick="closeSummonOverlay()" class="bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black px-6 py-2.5 rounded-xl text-xs md:text-sm transition-all shadow-lg shadow-amber-500/20 active:scale-95">
+                    Continue <i class="fa-solid fa-check ml-1"></i>
+                </button>
+            </div>
+
+            <!-- Cards Container Grid -->
+            <div id="cardsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4 w-full px-2">
+                <!-- Cards injected dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Roster Collection Gallery Modal -->
+    <div id="collectionModal" class="fixed inset-0 z-40 bg-slate-950/85 backdrop-blur-md hidden items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-5xl rounded-2xl border border-slate-700/80 max-h-[88vh] flex flex-col overflow-hidden shadow-2xl">
+            <!-- Header -->
+            <div class="p-4 md:p-5 border-b border-slate-800 flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <i class="fa-solid fa-book-bookmark text-amber-400 text-xl"></i>
+                    <div>
+                        <h3 class="font-cinzel text-xl font-bold text-slate-100">Character Roster & Collection</h3>
+                        <p class="text-xs text-slate-400">Inspect unlocked anime heroes, artwork, and duplicates</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('collectionModal')" class="text-slate-400 hover:text-white p-2 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Filter Controls -->
+            <div class="p-3 bg-slate-900/80 border-b border-slate-800/80 flex items-center justify-between text-xs flex-wrap gap-2">
+                <div class="flex space-x-1.5">
+                    <button onclick="filterCollection('all')" class="col-filter-btn active bg-purple-600 text-white px-3.5 py-1.5 rounded-lg font-bold">All</button>
+                    <button onclick="filterCollection(5)" class="col-filter-btn bg-slate-800 text-amber-300 px-3.5 py-1.5 rounded-lg font-bold">5★ Ultra</button>
+                    <button onclick="filterCollection(4)" class="col-filter-btn bg-slate-800 text-purple-300 px-3.5 py-1.5 rounded-lg font-bold">4★ Epic</button>
+                    <button onclick="filterCollection(3)" class="col-filter-btn bg-slate-800 text-blue-300 px-3.5 py-1.5 rounded-lg font-bold">3★ Rare</button>
+                </div>
+                <div id="collectionCompletion" class="text-slate-300 font-bold">Unlocked: 0 / 12</div>
+            </div>
+
+            <!-- Collection Grid -->
+            <div id="collectionGrid" class="p-4 md:p-6 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <!-- Dynamically populated collection cards -->
+            </div>
+        </div>
+    </div>
+
+    <!-- History Logs Modal -->
+    <div id="historyModal" class="fixed inset-0 z-40 bg-slate-950/85 backdrop-blur-md hidden items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-3xl rounded-2xl border border-slate-700/80 max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+            <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <i class="fa-solid fa-clock-rotate-left text-cyan-400 text-xl"></i>
+                    <h3 class="font-cinzel text-xl font-bold text-slate-100">Wish Log History</h3>
+                </div>
+                <button onclick="closeModal('historyModal')" class="text-slate-400 hover:text-white p-2 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div id="historyLogList" class="p-4 overflow-y-auto space-y-2 text-xs divide-y divide-slate-800/80">
+                <!-- Pull history rows -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Probability & Stats Modal -->
+    <div id="statsModal" class="fixed inset-0 z-40 bg-slate-950/85 backdrop-blur-md hidden items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-2xl rounded-2xl border border-slate-700/80 p-6 flex flex-col space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="font-cinzel text-xl font-bold text-amber-300">Gacha Statistics & Drop Rates</h3>
+                <button onclick="closeModal('statsModal')" class="text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3 text-center">
+                <div class="bg-slate-900/90 border border-slate-800 p-3 rounded-xl">
+                    <div id="statTotalPulls" class="text-xl font-black text-slate-100">0</div>
+                    <div class="text-[10px] text-slate-400 uppercase font-bold mt-1">Total Wishes</div>
+                </div>
+                <div class="bg-amber-950/40 border border-amber-500/30 p-3 rounded-xl">
+                    <div id="stat5Count" class="text-xl font-black text-amber-400">0</div>
+                    <div class="text-[10px] text-amber-300/80 uppercase font-bold mt-1">5★ Ultra Obtained</div>
+                </div>
+                <div class="bg-purple-950/40 border border-purple-500/30 p-3 rounded-xl">
+                    <div id="stat4Count" class="text-xl font-black text-purple-400">0</div>
+                    <div class="text-[10px] text-purple-300/80 uppercase font-bold mt-1">4★ Epic Obtained</div>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/80 p-4 rounded-xl space-y-2 text-xs text-slate-300 border border-slate-800">
+                <h4 class="font-bold text-slate-100 border-b border-slate-800 pb-1">Wish Drop Mechanics</h4>
+                <p>&bull; <span class="text-amber-400 font-bold">5-Star Character:</span> Base drop rate 0.60%. Soft pity triggers from pull 74 (+6.00% per pull up to 100% at pull 90).</p>
+                <p>&bull; <span class="text-amber-300 font-bold">50/50 Featured Rule:</span> When winning a 5★ hero, 50% chance to be event character <span class="text-amber-300 font-bold">Aria</span>. If lost, the next 5★ is 100% guaranteed to be Aria.</p>
+                <p>&bull; <span class="text-purple-400 font-bold">4-Star Character:</span> Base drop rate 5.10%. Guaranteed 4★ or higher unit every 10 pulls.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Character Details Modal -->
+    <div id="charDetailModal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md hidden items-center justify-center p-4">
+        <div id="charDetailCard" class="glass-panel w-full max-w-md rounded-2xl border p-6 flex flex-col items-center text-center relative shadow-2xl">
+            <button onclick="closeModal('charDetailModal')" class="absolute top-3 right-3 text-slate-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            
+            <div id="charDetailSvgBox" class="w-40 h-40 filter drop-shadow-lg mb-2"></div>
+            <div id="charDetailRarity" class="flex space-x-1 text-amber-400 text-sm mb-1"></div>
+            <h3 id="charDetailName" class="font-cinzel text-2xl font-black text-white"></h3>
+            <p id="charDetailTitle" class="text-xs text-slate-400 italic mb-2"></p>
+            <p id="charDetailQuote" class="text-xs text-amber-200/90 italic bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-lg mb-3"></p>
+            <div id="charDetailElement" class="px-3 py-1 rounded-full text-xs font-bold mb-3"></div>
+            <p id="charDetailDesc" class="text-xs text-slate-300 bg-slate-900/80 p-3 rounded-xl mb-4 leading-relaxed border border-slate-800"></p>
+            <div class="w-full flex justify-between text-xs text-slate-400 border-t border-slate-800 pt-3">
+                <span>Constellation: <strong id="charDetailDuplicates" class="text-amber-300">0</strong></span>
+                <span>Element: <strong id="charDetailElemName" class="text-slate-200"></strong></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Bar -->
+    <footer class="relative z-10 w-full px-4 py-2.5 glass-panel border-t border-slate-800/80 text-center text-[11px] text-slate-400">
+        Starlight Symphony Anime Gacha Simulator &bull; 50/50 Rate-Up & Ultra 5★ Cinematic Animations
+    </footer>
+
+    <script>
+        /* --------------------------------------------------
+         * 1. VECTOR ANIME CHARACTER SVG PORTRAIT GENERATORS
+         * -------------------------------------------------- */
+        // Generates stylized anime character portraits inline via SVG
+        function generateAnimeSVG(id, scale = 1) {
+            const charData = ANIME_CHARACTERS.find(c => c.id === id) || ANIME_CHARACTERS[0];
+            
+            // Color palettes per hero
+            const palettes = {
+                aria: { hair: '#fef08a', hairDark: '#eab308', skin: '#fde047', eyes: '#38bdf8', aura: '#fbbf24', outfit: '#38bdf8' },
+                elysia: { hair: '#f472b6', hairDark: '#db2777', skin: '#fbcfe8', eyes: '#a855f7', aura: '#f472b6', outfit: '#a855f7' },
+                kael: { hair: '#ef4444', hairDark: '#991b1b', skin: '#fca5a5', eyes: '#f97316', aura: '#ef4444', outfit: '#1e293b' },
+                ren: { hair: '#a855f7', hairDark: '#6b21a8', skin: '#e9d5ff', eyes: '#ec4899', aura: '#a855f7', outfit: '#0f172a' },
+                lyra: { hair: '#34d399', hairDark: '#059669', skin: '#a7f3d0', eyes: '#10b981', aura: '#34d399', outfit: '#064e3b' },
+                nova: { hair: '#fb923c', hairDark: '#c2410c', skin: '#fed7aa', eyes: '#ea580c', aura: '#fb923c', outfit: '#7c2d12' },
+                zephyr: { hair: '#38bdf8', hairDark: '#0284c7', skin: '#bae6fd', eyes: '#0ea5e9', aura: '#38bdf8', outfit: '#0c4a6e' },
+                kaito: { hair: '#64748b', hairDark: '#334155', skin: '#cbd5e1', eyes: '#818cf8', aura: '#818cf8', outfit: '#020617' },
+                novice_mage: { hair: '#60a5fa', hairDark: '#1d4ed8', skin: '#bfdbfe', eyes: '#2563eb', aura: '#60a5fa', outfit: '#1e3a8a' },
+                squire: { hair: '#facc15', hairDark: '#ca8a04', skin: '#fef08a', eyes: '#ca8a04', aura: '#facc15', outfit: '#475569' },
+                ranger: { hair: '#4ade80', hairDark: '#15803d', skin: '#bbf7d0', eyes: '#16a34a', aura: '#4ade80', outfit: '#14532d' },
+                rogue: { hair: '#a1a1aa', hairDark: '#52525b', skin: '#e4e4e7', eyes: '#a855f7', aura: '#a1a1aa', outfit: '#18181b' }
+            };
+
+            const p = palettes[id] || palettes.aria;
+
+            return `
+            <svg viewBox="0 0 200 200" class="w-full h-full">
+                <defs>
+                    <radialGradient id="aura-${id}" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="${p.aura}" stop-opacity="0.6"/>
+                        <stop offset="100%" stop-color="${p.aura}" stop-opacity="0"/>
+                    </radialGradient>
+                    <linearGradient id="hairGrad-${id}" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="${p.hair}"/>
+                        <stop offset="100%" stop-color="${p.hairDark}"/>
+                    </linearGradient>
+                </defs>
+                <!-- Aura Circle -->
+                <circle cx="100" cy="100" r="90" fill="url(#aura-${id})" />
+                
+                <!-- Anime Silhouette Base / Shoulders & Outfit -->
+                <path d="M 50 180 C 50 145, 150 145, 150 180 Z" fill="${p.outfit}" />
+                <path d="M 75 145 L 100 165 L 125 145 Z" fill="#ffffff" opacity="0.8" />
+                
+                <!-- Neck -->
+                <rect x="90" y="125" width="20" height="25" rx="5" fill="#fde047" opacity="0.6" />
+                
+                <!-- Face Base -->
+                <path d="M 65 80 C 65 130, 135 130, 135 80 C 135 50, 65 50, 65 80 Z" fill="#fef3c7" />
+                
+                <!-- Anime Eyes -->
+                <!-- Left Eye -->
+                <ellipse cx="82" cy="85" rx="8" ry="12" fill="#ffffff" />
+                <ellipse cx="82" cy="85" rx="6" ry="9" fill="${p.eyes}" />
+                <circle cx="80" cy="82" r="2.5" fill="#ffffff" />
+                
+                <!-- Right Eye -->
+                <ellipse cx="118" cy="85" rx="8" ry="12" fill="#ffffff" />
+                <ellipse cx="118" cy="85" rx="6" ry="9" fill="${p.eyes}" />
+                <circle cx="116" cy="82" r="2.5" fill="#ffffff" />
+                
+                <!-- Eyebrows -->
+                <path d="M 73 70 Q 82 66 90 70" stroke="${p.hairDark}" stroke-width="2.5" fill="none" stroke-linecap="round" />
+                <path d="M 110 70 Q 118 66 127 70" stroke="${p.hairDark}" stroke-width="2.5" fill="none" stroke-linecap="round" />
+                
+                <!-- Cute Mouth & Blush -->
+                <path d="M 95 105 Q 100 109 105 105" stroke="#f43f5e" stroke-width="2" fill="none" stroke-linecap="round" />
+                <ellipse cx="74" cy="98" rx="6" ry="3" fill="#fda4af" opacity="0.6" />
+                <ellipse cx="126" cy="98" rx="6" ry="3" fill="#fda4af" opacity="0.6" />
+
+                <!-- Stylized Anime Hair (Front Bangs & Spikes) -->
+                <path d="M 55 75 Q 60 25 100 25 Q 140 25 145 75 C 130 50 110 40 100 65 C 90 40 70 50 55 75 Z" fill="url(#hairGrad-${id})" />
+                <path d="M 80 45 L 100 78 L 120 45" fill="url(#hairGrad-${id})" />
+                <path d="M 50 80 Q 40 120 55 140 Q 65 110 65 85 Z" fill="url(#hairGrad-${id})" />
+                <path d="M 150 80 Q 160 120 145 140 Q 135 110 135 85 Z" fill="url(#hairGrad-${id})" />
+                
+                <!-- Head Accessory / Tiara for 5-stars -->
+                ${charData.rarity === 5 ? `<path d="M 85 38 L 100 22 L 115 38 L 100 32 Z" fill="#fbbf24" stroke="#ffffff" stroke-width="1"/>` : ''}
+            </svg>
+            `;
+        }
+
+        /* --------------------------------------------------
+         * 2. ANIME CHARACTER ROSTER DATA
+         * -------------------------------------------------- */
+        const ANIME_CHARACTERS = [
+            // 5-Star (UR / Ultra Rare)
+            {
+                id: 'aria',
+                name: 'Aria Celestial Valkyrie',
+                title: 'Sovereign of the Astral Veil',
+                quote: '"May starlight illuminate your path to victory!"',
+                rarity: 5,
+                element: 'Light',
+                elementColor: 'text-amber-300 bg-amber-500/20 border-amber-400/40',
+                isFeatured: true,
+                desc: 'An immortal Valkyrie who commands celestial beams to purge darkness across dimensions.'
+            },
+            {
+                id: 'elysia',
+                name: 'Elysia Sovereign of Starlight',
+                title: 'Empress of Dawn',
+                quote: '"The morning dawn breaks all eternal night."',
+                rarity: 5,
+                element: 'Lightning',
+                elementColor: 'text-purple-300 bg-purple-500/20 border-purple-400/40',
+                isFeatured: false,
+                desc: 'Wields radiant lightning spears that shatter space and grant absolute defense to allies.'
+            },
+            {
+                id: 'kael',
+                name: 'Kael Flame Emperor',
+                title: 'Lord of Sol Inferno',
+                quote: '"Burn away the sins of a thousand worlds!"',
+                rarity: 5,
+                element: 'Fire',
+                elementColor: 'text-red-300 bg-red-500/20 border-red-400/40',
+                isFeatured: false,
+                desc: 'A fiery swordmaster whose blade blazes hotter than the core of a dying star.'
+            },
+            {
+                id: 'ren',
+                name: 'Ren Void Shadow',
+                title: 'Abyssal Monarch',
+                quote: '"The void claims all in silent eternity..."',
+                rarity: 5,
+                element: 'Dark',
+                elementColor: 'text-indigo-300 bg-indigo-500/20 border-indigo-400/40',
+                isFeatured: false,
+                desc: 'Commands black hole singularities to disintegrate enemy battlelines in seconds.'
+            },
+
+            // 4-Star (SR)
+            {
+                id: 'lyra',
+                name: 'Lyra Skyward Ranger',
+                title: 'Gale Archer',
+                quote: '"Target locked. Wind guide my bow!"',
+                rarity: 4,
+                element: 'Wind',
+                elementColor: 'text-emerald-300 bg-emerald-500/20 border-emerald-400/40',
+                desc: 'A nimble ranger whose wind-infused arrows snip targets from miles away.'
+            },
+            {
+                id: 'nova',
+                name: 'Nova Ignition Spark',
+                title: 'Plasma Alchemist',
+                quote: '"Boom! Chemistry at its finest!"',
+                rarity: 4,
+                element: 'Fire',
+                elementColor: 'text-red-300 bg-red-500/20 border-red-400/40',
+                desc: 'An energetic alchemist creating explosive fiery reactions.'
+            },
+            {
+                id: 'zephyr',
+                name: 'Zephyr Frost Blade',
+                title: 'Glacial Blade',
+                quote: '"Freeze in everlasting silence."',
+                rarity: 4,
+                element: 'Ice',
+                elementColor: 'text-cyan-300 bg-cyan-500/20 border-cyan-400/40',
+                desc: 'Swift dual-blade warrior slicing foes with freezing ice surges.'
+            },
+            {
+                id: 'kaito',
+                name: 'Kaito Nightfall Ninja',
+                title: 'Shadow Striker',
+                quote: '"You won\'t even hear the strike."',
+                rarity: 4,
+                element: 'Dark',
+                elementColor: 'text-indigo-300 bg-indigo-500/20 border-indigo-400/40',
+                desc: 'Stealth assassin emerging from shadows for fatal critical hits.'
+            },
+
+            // 3-Star (R)
+            {
+                id: 'novice_mage',
+                name: 'Aqua Novice Mage',
+                title: 'Academy Apprentice',
+                quote: '"I am still learning water magic!"',
+                rarity: 3,
+                element: 'Water',
+                elementColor: 'text-blue-300 bg-blue-500/20 border-blue-400/40',
+                desc: 'An eager student casting water barrier bubbles.'
+            },
+            {
+                id: 'squire',
+                name: 'Squire of Valor',
+                title: 'Guardsman',
+                quote: '"My shield stands firm!"',
+                rarity: 3,
+                element: 'Light',
+                elementColor: 'text-amber-300 bg-amber-500/20 border-amber-400/40',
+                desc: 'Loyal guard protecting team frontlines.'
+            },
+            {
+                id: 'ranger',
+                name: 'Woodland Scout',
+                title: 'Forest Ranger',
+                quote: '"Path ahead is clear."',
+                rarity: 3,
+                element: 'Wind',
+                elementColor: 'text-emerald-300 bg-emerald-500/20 border-emerald-400/40',
+                desc: 'Scout tracking enemy movements.'
+            },
+            {
+                id: 'rogue',
+                name: 'Street Rogue',
+                title: 'Wanderer',
+                quote: '"Quick hands, faster feet."',
+                rarity: 3,
+                element: 'Dark',
+                elementColor: 'text-slate-300 bg-slate-500/20 border-slate-400/40',
+                desc: 'Agile wanderer dodging enemy attacks.'
+            }
+        ];
+
+        /* --------------------------------------------------
+         * 3. APP STATE & AUDIO SYNTHESIZER
+         * -------------------------------------------------- */
+        let state = {
+            currency: 16000,
+            pity5: 0,
+            pity4: 0,
+            guaranteedFeatured: false,
+            totalPulls: 0,
+            total5Star: 0,
+            total4Star: 0,
+            history: [],
+            collection: {},
+            sfxEnabled: true,
+            activePending5Stars: []
+        };
+
+        ANIME_CHARACTERS.forEach(c => state.collection[c.id] = 0);
+
+        // Web Audio Synthesizer
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (!state.sfxEnabled) return;
+            try {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+
+                if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, now);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'pull') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.5);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                    osc.start(now);
+                    osc.stop(now + 0.5);
+                } else if (type === 'legendary') {
+                    // Majestic multi-tone chime for 5-Star Reveal
+                    [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.connect(g);
+                        g.connect(audioCtx.destination);
+                        o.type = 'triangle';
+                        o.frequency.setValueAtTime(freq, now + i * 0.12);
+                        g.gain.setValueAtTime(0.35, now + i * 0.12);
+                        g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 1.2);
+                        o.start(now + i * 0.12);
+                        o.stop(now + i * 0.12 + 1.2);
+                    });
+                }
+            } catch (e) {}
+        }
+
+        function toggleAudio() {
+            state.sfxEnabled = !state.sfxEnabled;
+            const icon = document.getElementById('soundIcon');
+            const text = document.getElementById('soundText');
+            if (state.sfxEnabled) {
+                icon.className = 'fa-solid fa-volume-high text-amber-400';
+                text.innerText = 'SFX ON';
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-slate-500';
+                text.innerText = 'SFX OFF';
+            }
+        }
+
+        /* --------------------------------------------------
+         * 4. GACHA SIMULATION LOGIC
+         * -------------------------------------------------- */
+        function performSummon(count) {
+            playSound('click');
+            const cost = count * 160;
+            if (state.currency < cost) {
+                alert('Not enough Stellar Crystals! Click "Get Gems" to top up.');
+                return;
+            }
+
+            state.currency -= cost;
+            updateUI();
+
+            const pullResults = [];
+            state.activePending5Stars = [];
+
+            for (let i = 0; i < count; i++) {
+                state.pity5++;
+                state.pity4++;
+                state.totalPulls++;
+
+                // Probability calculation with soft pity
+                let prob5 = 0.006;
+                if (state.pity5 >= 74) {
+                    prob5 += (state.pity5 - 73) * 0.06;
+                }
+                if (state.pity5 >= 90) prob5 = 1.0;
+
+                const rand = Math.random();
+
+                if (rand < prob5) {
+                    // --- 5-STAR PULL ---
+                    state.total5Star++;
+                    state.pity5 = 0;
+
+                    let pulledChar;
+                    if (state.guaranteedFeatured || Math.random() < 0.5) {
+                        pulledChar = ANIME_CHARACTERS.find(c => c.isFeatured);
+                        state.guaranteedFeatured = false;
+                    } else {
+                        const std5 = ANIME_CHARACTERS.filter(c => c.rarity === 5 && !c.isFeatured);
+                        pulledChar = std5[Math.floor(Math.random() * std5.length)];
+                        state.guaranteedFeatured = true;
+                    }
+                    pullResults.push(pulledChar);
+                    state.activePending5Stars.push(pulledChar);
+
+                } else if (state.pity4 >= 10 || rand < (prob5 + 0.051)) {
+                    // --- 4-STAR PULL ---
+                    state.total4Star++;
+                    state.pity4 = 0;
+                    const fours = ANIME_CHARACTERS.filter(c => c.rarity === 4);
+                    const pulledChar = fours[Math.floor(Math.random() * fours.length)];
+                    pullResults.push(pulledChar);
+
+                } else {
+                    // --- 3-STAR PULL ---
+                    const threes = ANIME_CHARACTERS.filter(c => c.rarity === 3);
+                    const pulledChar = threes[Math.floor(Math.random() * threes.length)];
+                    pullResults.push(pulledChar);
+                }
+
+                // Update collection & history log
+                const resultChar = pullResults[pullResults.length - 1];
+                state.collection[resultChar.id] = (state.collection[resultChar.id] || 0) + 1;
+                state.history.unshift({
+                    name: resultChar.name,
+                    rarity: resultChar.rarity,
+                    time: new Date().toLocaleTimeString(),
+                    pityAtPull: state.pity5
+                });
+            }
+
+            updateUI();
+            triggerPortalSequence(pullResults);
+        }
+
+        /* --------------------------------------------------
+         * 5. ANIMATION & ULTRA 5★ CINEMATIC SHOWCASE
+         * -------------------------------------------------- */
+        let currentPullResults = [];
+
+        function triggerPortalSequence(results) {
+            playSound('pull');
+            currentPullResults = results;
+
+            const overlay = document.getElementById('summonOverlay');
+            const portalStage = document.getElementById('summonPortalStage');
+            const revealGrid = document.getElementById('revealGridScreen');
+            const cinematic = document.getElementById('cinematicReveal5Star');
+            const skipBtn = document.getElementById('skipAnimBtn');
+
+            const maxRarity = Math.max(...results.map(r => r.rarity));
+
+            // Customize portal aura based on highest rarity pulled
+            const portalOrb = document.getElementById('portalOrb');
+            const portalAura = document.getElementById('portalAura');
+
+            if (maxRarity === 5) {
+                portalOrb.className = "relative w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-tr from-amber-400 via-amber-200 to-white shadow-[0_0_80px_rgba(251,191,36,1)] flex items-center justify-center animate-bounce border-2 border-white";
+                portalAura.className = "absolute inset-4 rounded-full bg-amber-400/50 blur-3xl animate-ping";
+            } else if (maxRarity === 4) {
+                portalOrb.className = "relative w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-tr from-purple-500 via-purple-300 to-white shadow-[0_0_60px_rgba(192,132,252,0.9)] flex items-center justify-center animate-bounce border-2 border-white";
+                portalAura.className = "absolute inset-4 rounded-full bg-purple-500/40 blur-3xl animate-ping";
+            } else {
+                portalOrb.className = "relative w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-tr from-blue-500 via-blue-300 to-white shadow-[0_0_40px_rgba(96,165,250,0.8)] flex items-center justify-center animate-bounce border-2 border-white";
+                portalAura.className = "absolute inset-4 rounded-full bg-blue-500/30 blur-3xl animate-ping";
+            }
+
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            portalStage.classList.remove('hidden');
+            portalStage.classList.add('flex');
+            revealGrid.classList.add('hidden');
+            cinematic.classList.add('hidden');
+            skipBtn.classList.remove('hidden');
+
+            // Timer to progress to cinematic or results
+            setTimeout(() => {
+                portalStage.classList.add('hidden');
+                
+                // If 5-Star character is obtained, display full-screen cinematic reveal first!
+                if (state.activePending5Stars.length > 0) {
+                    showCinematic5Star(state.activePending5Stars.shift());
+                } else {
+                    showResultsGrid(results);
+                }
+            }, 1400);
+        }
+
+        function showCinematic5Star(char) {
+            playSound('legendary');
+            document.body.classList.add('shake-screen');
+            setTimeout(() => document.body.classList.remove('shake-screen'), 500);
+
+            const cinematic = document.getElementById('cinematicReveal5Star');
+            cinematic.classList.remove('hidden');
+            cinematic.classList.add('flex');
+
+            document.getElementById('cinematicCharArt').innerHTML = generateAnimeSVG(char.id);
+            document.getElementById('cinematicCharName').innerText = char.name;
+            document.getElementById('cinematicCharQuote').innerText = char.quote;
+
+            initCinematicParticles();
+        }
+
+        function closeCinematic5Star() {
+            playSound('click');
+            const cinematic = document.getElementById('cinematicReveal5Star');
+            cinematic.classList.add('hidden');
+
+            // Check if another 5-star remains in queue for 10-pull
+            if (state.activePending5Stars.length > 0) {
+                showCinematic5Star(state.activePending5Stars.shift());
+            } else {
+                showResultsGrid(currentPullResults);
+            }
+        }
+
+        function skipToResults() {
+            playSound('click');
+            document.getElementById('summonPortalStage').classList.add('hidden');
+            document.getElementById('cinematicReveal5Star').classList.add('hidden');
+            showResultsGrid(currentPullResults);
+        }
+
+        function showResultsGrid(results) {
+            document.getElementById('skipAnimBtn').classList.add('hidden');
+            const revealGrid = document.getElementById('revealGridScreen');
+            revealGrid.classList.remove('hidden');
+            revealGrid.classList.add('flex');
+
+            const cardsGrid = document.getElementById('cardsGrid');
+            cardsGrid.innerHTML = '';
+
+            results.forEach((char, index) => {
+                const cardBox = document.createElement('div');
+                cardBox.className = 'card-container h-64 md:h-72 cursor-pointer';
+
+                const cardClass = char.rarity === 5 ? 'card-5star' : (char.rarity === 4 ? 'card-4star' : 'card-3star');
+                const starsHTML = '<i class="fa-solid fa-star"></i>'.repeat(char.rarity);
+
+                cardBox.innerHTML = `
+                    <div class="card-inner">
+                        <div class="card-back rounded-xl p-4 flex flex-col items-center justify-center shadow-lg">
+                            <i class="fa-solid fa-burst text-3xl text-slate-500 animate-spin-slow"></i>
+                            <span class="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest">REVEAL</span>
+                        </div>
+                        <div class="card-front ${cardClass} rounded-xl p-3 flex flex-col justify-between relative overflow-hidden">
+                            <div class="flex justify-between items-center z-10">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-black ${char.elementColor}">
+                                    ${char.element}
+                                </span>
+                                <span class="text-xs text-amber-300 font-bold">${starsHTML}</span>
+                            </div>
+
+                            <div class="my-auto flex flex-col items-center z-10 py-1">
+                                <div class="w-20 h-20 md:w-24 md:h-24 filter drop-shadow-md mb-1">
+                                    ${generateAnimeSVG(char.id)}
+                                </div>
+                                <h4 class="font-cinzel text-xs md:text-sm font-extrabold text-center leading-tight text-white">${char.name}</h4>
+                            </div>
+
+                            <div class="z-10 text-center">
+                                <button onclick="openCharDetail('${char.id}')" class="w-full bg-slate-950/70 hover:bg-slate-950 text-white text-[10px] font-bold py-1 rounded border border-white/10">
+                                    Hero Specs
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                cardBox.onclick = () => {
+                    cardBox.classList.add('flipped');
+                    if (char.rarity === 5) playSound('legendary');
+                };
+
+                cardsGrid.appendChild(cardBox);
+
+                // Auto flip delay
+                setTimeout(() => {
+                    cardBox.classList.add('flipped');
+                    if (char.rarity === 5 && results.length < 10) playSound('legendary');
+                }, index * 120 + 200);
+            });
+        }
+
+        function closeSummonOverlay() {
+            playSound('click');
+            const overlay = document.getElementById('summonOverlay');
+            overlay.classList.add('hidden');
+        }
+
+        /* --------------------------------------------------
+         * 6. UI UPDATERS & RENDERERS
+         * -------------------------------------------------- */
+        function updateUI() {
+            document.getElementById('currencyDisplay').innerText = state.currency.toLocaleString();
+
+            document.getElementById('pity5Count').innerText = `${state.pity5} / 90`;
+            document.getElementById('pity5Bar').style.width = `${Math.min((state.pity5 / 90) * 100, 100)}%`;
+
+            document.getElementById('pity4Count').innerText = `${state.pity4} / 10`;
+            document.getElementById('pity4Bar').style.width = `${Math.min((state.pity4 / 10) * 100, 100)}%`;
+
+            if (state.pity5 >= 74) {
+                document.getElementById('pity5Status').innerText = `SOFT PITY ACTIVE! (+${((state.pity5 - 73) * 6).toFixed(0)}% Rate)`;
+                document.getElementById('pity5Status').className = "text-[10px] text-amber-300 font-bold mt-1 animate-pulse";
+            } else {
+                document.getElementById('pity5Status').innerText = `Soft pity begins at 74 pulls`;
+                document.getElementById('pity5Status').className = "text-[10px] text-slate-400 mt-1";
+            }
+
+            const rateUpElem = document.getElementById('rateUpStatus');
+            if (state.guaranteedFeatured) {
+                rateUpElem.innerText = "100% Guaranteed!";
+                rateUpElem.className = "text-sm font-bold text-emerald-400";
+            } else {
+                rateUpElem.innerText = "50% Chance";
+                rateUpElem.className = "text-sm font-bold text-amber-300";
+            }
+
+            document.getElementById('statTotalPulls').innerText = state.totalPulls;
+            document.getElementById('stat5Count').innerText = state.total5Star;
+            document.getElementById('stat4Count').innerText = state.total4Star;
+
+            renderHistoryLogs();
+            renderCollectionGrid('all');
+        }
+
+        function rechargeCurrency() {
+            playSound('click');
+            state.currency += 16000;
+            updateUI();
+        }
+
+        function openModal(id) {
+            playSound('click');
+            document.getElementById(id).classList.remove('hidden');
+            document.getElementById(id).classList.add('flex');
+        }
+
+        function closeModal(id) {
+            playSound('click');
+            document.getElementById(id).classList.add('hidden');
+            document.getElementById(id).classList.remove('flex');
+        }
+
+        function renderCollectionGrid(filterRarity) {
+            const grid = document.getElementById('collectionGrid');
+            grid.innerHTML = '';
+
+            let unlockedCount = 0;
+
+            ANIME_CHARACTERS.forEach(char => {
+                const count = state.collection[char.id] || 0;
+                if (count > 0) unlockedCount++;
+
+                if (filterRarity !== 'all' && char.rarity !== parseInt(filterRarity)) return;
+
+                const card = document.createElement('div');
+                const isUnlocked = count > 0;
+                const opacityClass = isUnlocked ? 'opacity-100' : 'opacity-40 grayscale';
+                const borderClass = char.rarity === 5 ? 'border-amber-400/80' : (char.rarity === 4 ? 'border-purple-400/80' : 'border-blue-400/80');
+
+                card.className = `glass-panel p-3 rounded-xl border ${borderClass} ${opacityClass} flex flex-col items-center justify-between text-center relative hover:scale-105 transition-transform cursor-pointer`;
+                card.onclick = () => { if (isUnlocked) openCharDetail(char.id); };
+
+                const stars = '<i class="fa-solid fa-star text-[10px]"></i>'.repeat(char.rarity);
+
+                card.innerHTML = `
+                    <div class="absolute top-2 right-2 text-amber-400 flex space-x-0.5">${stars}</div>
+                    <div class="w-16 h-16 filter drop-shadow my-2">
+                        ${generateAnimeSVG(char.id)}
+                    </div>
+                    <h5 class="font-cinzel text-xs font-bold text-white line-clamp-1">${char.name}</h5>
+                    <span class="text-[10px] ${char.elementColor} px-2 py-0.5 rounded-full mt-1 font-semibold">${char.element}</span>
+                    <div class="mt-2 text-[10px] text-slate-300 bg-slate-900/80 px-2 py-0.5 rounded border border-white/10">
+                        ${isUnlocked ? `Constellation: C${count - 1}` : 'Locked'}
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+
+            document.getElementById('collectionCompletion').innerText = `Unlocked: ${unlockedCount} / ${ANIME_CHARACTERS.length}`;
+        }
+
+        function filterCollection(rarity) {
+            playSound('click');
+            document.querySelectorAll('.col-filter-btn').forEach(btn => {
+                btn.classList.remove('bg-purple-600', 'text-white');
+                btn.classList.add('bg-slate-800');
+            });
+            event.target.classList.add('bg-purple-600', 'text-white');
+            renderCollectionGrid(rarity);
+        }
+
+        function openCharDetail(charId) {
+            playSound('click');
+            const char = ANIME_CHARACTERS.find(c => c.id === charId);
+            if (!char) return;
+
+            document.getElementById('charDetailCard').className = `glass-panel w-full max-w-md rounded-2xl border p-6 flex flex-col items-center text-center relative shadow-2xl ${char.rarity === 5 ? 'border-amber-400' : (char.rarity === 4 ? 'border-purple-400' : 'border-blue-400')}`;
+            
+            document.getElementById('charDetailSvgBox').innerHTML = generateAnimeSVG(char.id);
+            document.getElementById('charDetailRarity').innerHTML = '<i class="fa-solid fa-star"></i>'.repeat(char.rarity);
+            document.getElementById('charDetailName').innerText = char.name;
+            document.getElementById('charDetailTitle').innerText = char.title;
+            document.getElementById('charDetailQuote').innerText = char.quote;
+
+            const elemBadge = document.getElementById('charDetailElement');
+            elemBadge.innerText = `${char.element} Attribute`;
+            elemBadge.className = `px-3 py-1 rounded-full text-xs font-bold mb-3 ${char.elementColor}`;
+
+            document.getElementById('charDetailDesc').innerText = char.desc;
+
+            const count = state.collection[char.id] || 0;
+            document.getElementById('charDetailDuplicates').innerText = count > 0 ? `C${count - 1} (${count} copies)` : 'Locked';
+            document.getElementById('charDetailElemName').innerText = char.element;
+
+            openModal('charDetailModal');
+        }
+
+        function renderHistoryLogs() {
+            const list = document.getElementById('historyLogList');
+            if (state.history.length === 0) {
+                list.innerHTML = '<div class="text-center text-slate-500 py-6">No wishes recorded yet.</div>';
+                return;
+            }
+
+            list.innerHTML = '';
+            state.history.slice(0, 50).forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'py-2 flex justify-between items-center';
+                const colorClass = item.rarity === 5 ? 'text-amber-400 font-bold' : (item.rarity === 4 ? 'text-purple-400 font-semibold' : 'text-slate-300');
+
+                row.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <span class="${colorClass}">${item.rarity}★</span>
+                        <span class="${colorClass}">${item.name}</span>
+                    </div>
+                    <div class="text-[10px] text-slate-500 flex items-center space-x-3">
+                        <span>Pity: ${item.pityAtPull}</span>
+                        <span>${item.time}</span>
+                    </div>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        /* --------------------------------------------------
+         * 7. BACKGROUND & CINEMATIC CANVASES
+         * -------------------------------------------------- */
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            stars = [];
+            for (let i = 0; i < Math.floor((canvas.width * canvas.height) / 9000); i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 1.8 + 0.2,
+                    alpha: Math.random(),
+                    speed: Math.random() * 0.01 + 0.005
+                });
+            }
+        }
+
+        function animateCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            stars.forEach(s => {
+                s.alpha += s.speed;
+                if (s.alpha > 1 || s.alpha < 0) s.speed = -s.speed;
+                ctx.fillStyle = `rgba(255, 255, 255, ${Math.abs(s.alpha) * 0.7})`;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            requestAnimationFrame(animateCanvas);
+        }
+
+        // Cinematic Golden Particle Shimmer for 5★ Reveal
+        const cinCanvas = document.getElementById('cinematicCanvas');
+        const cinCtx = cinCanvas.getContext('2d');
+        let cinParticles = [];
+
+        function initCinematicParticles() {
+            cinCanvas.width = window.innerWidth;
+            cinCanvas.height = window.innerHeight;
+            cinParticles = [];
+            for (let i = 0; i < 80; i++) {
+                cinParticles.push({
+                    x: Math.random() * cinCanvas.width,
+                    y: Math.random() * cinCanvas.height,
+                    radius: Math.random() * 3 + 1,
+                    color: '#fbbf24',
+                    speedY: Math.random() * -2 - 1,
+                    alpha: Math.random()
+                });
+            }
+            animateCinematicParticles();
+        }
+
+        function animateCinematicParticles() {
+            if (document.getElementById('cinematicReveal5Star').classList.contains('hidden')) return;
+            cinCtx.clearRect(0, 0, cinCanvas.width, cinCanvas.height);
+            cinParticles.forEach(p => {
+                p.y += p.speedY;
+                if (p.y < 0) p.y = cinCanvas.height;
+                cinCtx.fillStyle = p.color;
+                cinCtx.globalAlpha = p.alpha;
+                cinCtx.beginPath();
+                cinCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                cinCtx.fill();
+            });
+            requestAnimationFrame(animateCinematicParticles);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        window.onload = () => {
+            resizeCanvas();
+            animateCanvas();
+            document.getElementById('featuredHeroArt').innerHTML = generateAnimeSVG('aria');
+            updateUI();
+        };
+    </script>
+</body>
+</html>
